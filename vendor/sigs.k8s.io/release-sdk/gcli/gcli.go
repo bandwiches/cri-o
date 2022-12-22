@@ -17,7 +17,7 @@ limitations under the License.
 package gcli
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 
 	"sigs.k8s.io/release-utils/command"
 )
@@ -36,7 +36,7 @@ func PreCheck() error {
 		gsutilExecutable,
 	} {
 		if !command.Available(e) {
-			return fmt.Errorf(
+			return errors.Errorf(
 				"%s executable is not available in $PATH", e,
 			)
 		}
@@ -54,7 +54,7 @@ func GCloud(args ...string) error {
 func GCloudOutput(args ...string) (string, error) {
 	stream, err := command.New(GCloudExecutable, args...).RunSilentSuccessOutput()
 	if err != nil {
-		return "", fmt.Errorf("executing %s: %w", GCloudExecutable, err)
+		return "", errors.Wrapf(err, "executing %s", GCloudExecutable)
 	}
 	return stream.OutputTrimNL(), nil
 }
@@ -68,7 +68,7 @@ func GSUtil(args ...string) error {
 func GSUtilOutput(args ...string) (string, error) {
 	stream, err := command.New(gsutilExecutable, args...).RunSilentSuccessOutput()
 	if err != nil {
-		return "", fmt.Errorf("executing %s: %w", gsutilExecutable, err)
+		return "", errors.Wrapf(err, "executing %s", gsutilExecutable)
 	}
 	return stream.OutputTrimNL(), nil
 }

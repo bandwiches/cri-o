@@ -17,7 +17,6 @@ limitations under the License.
 package object
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
-//go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt objectfakes/fake_store.go > objectfakes/_fake_store.go && mv objectfakes/_fake_store.go objectfakes/fake_store.go"
 
 //counterfeiter:generate . Store
 // Store is an interface modeling supported filestore operations

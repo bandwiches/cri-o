@@ -17,12 +17,11 @@ limitations under the License.
 package object
 
 import (
-	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/gcli"
@@ -108,12 +107,13 @@ var (
 // CopyToRemote copies a local directory to the specified GCS path
 func (g *GCS) CopyToRemote(src, gcsPath string) error {
 	logrus.Infof("Copying %s to GCS (%s)", src, gcsPath)
-	gcsPath, err := g.NormalizePath(gcsPath)
-	if err != nil {
-		return fmt.Errorf("normalize GCS path: %w", err)
+	gcsPath, gcsPathErr := g.NormalizePath(gcsPath)
+	if gcsPathErr != nil {
+		return errors.Wrap(gcsPathErr, "normalize GCS path")
 	}
 
-	if _, err := os.Stat(src); err != nil {
+	_, err := os.Stat(src)
+	if err != nil {
 		logrus.Info("Unable to get local source directory info")
 
 		if g.allowMissing {
@@ -130,9 +130,9 @@ func (g *GCS) CopyToRemote(src, gcsPath string) error {
 // CopyToLocal copies a GCS path to the specified local directory
 func (g *GCS) CopyToLocal(gcsPath, dst string) error {
 	logrus.Infof("Copying GCS (%s) to %s", gcsPath, dst)
-	gcsPath, err := g.NormalizePath(gcsPath)
-	if err != nil {
-		return fmt.Errorf("normalize GCS path: %w", err)
+	gcsPath, gcsPathErr := g.NormalizePath(gcsPath)
+	if gcsPathErr != nil {
+		return errors.Wrap(gcsPathErr, "normalize GCS path")
 	}
 
 	return g.bucketCopy(gcsPath, dst)
@@ -142,14 +142,14 @@ func (g *GCS) CopyToLocal(gcsPath, dst string) error {
 func (g *GCS) CopyBucketToBucket(src, dst string) error {
 	logrus.Infof("Copying %s to %s", src, dst)
 
-	src, err := g.NormalizePath(src)
-	if err != nil {
-		return fmt.Errorf("normalize GCS path: %w", err)
+	src, srcErr := g.NormalizePath(src)
+	if srcErr != nil {
+		return errors.Wrap(srcErr, "normalize GCS path")
 	}
 
-	dst, err = g.NormalizePath(dst)
-	if err != nil {
-		return fmt.Errorf("normalize GCS path: %w", err)
+	dst, dstErr := g.NormalizePath(dst)
+	if dstErr != nil {
+		return errors.Wrap(dstErr, "normalize GCS path")
 	}
 
 	return g.bucketCopy(src, dst)
@@ -176,7 +176,7 @@ func (g *GCS) bucketCopy(src, dst string) error {
 	args = append(args, src, dst)
 
 	if err := gcli.GSUtil(args...); err != nil {
-		return fmt.Errorf("gcs copy: %w", err)
+		return errors.Wrap(err, "gcs copy")
 	}
 
 	return nil
@@ -188,8 +188,7 @@ func (g *GCS) bucketCopy(src, dst string) error {
 //   gs://<bucket>/<gcsRoot>[/fast][/<version>]
 func (g *GCS) GetReleasePath(
 	bucket, gcsRoot, version string,
-	fast bool,
-) (string, error) {
+	fast bool) (string, error) {
 	gcsPath, err := g.getPath(
 		bucket,
 		gcsRoot,
@@ -198,7 +197,7 @@ func (g *GCS) GetReleasePath(
 		fast,
 	)
 	if err != nil {
-		return "", fmt.Errorf("normalize GCS path: %w", err)
+		return "", errors.Wrap(err, "normalize GCS path")
 	}
 
 	logrus.Infof("Release path is %s", gcsPath)
@@ -210,8 +209,7 @@ func (g *GCS) GetReleasePath(
 // Expected destination format:
 //   gs://<bucket>/<gcsRoot>
 func (g *GCS) GetMarkerPath(
-	bucket, gcsRoot string,
-) (string, error) {
+	bucket, gcsRoot string) (string, error) {
 	gcsPath, err := g.getPath(
 		bucket,
 		gcsRoot,
@@ -220,7 +218,7 @@ func (g *GCS) GetMarkerPath(
 		false,
 	)
 	if err != nil {
-		return "", fmt.Errorf("normalize GCS path: %w", err)
+		return "", errors.Wrap(err, "normalize GCS path")
 	}
 
 	logrus.Infof("Version marker path is %s", gcsPath)
@@ -234,8 +232,7 @@ func (g *GCS) GetMarkerPath(
 // TODO: Support "release" buildType
 func (g *GCS) getPath(
 	bucket, gcsRoot, version, pathType string,
-	fast bool,
-) (string, error) {
+	fast bool) (string, error) {
 	if gcsRoot == "" {
 		return "", errors.New("GCS root must be specified")
 	}
@@ -359,18 +356,16 @@ func (g *GCS) IsPathNormalized(gcsPath string) bool {
 // function has to ensure that the provided paths are prefixed with gs:// if
 // necessary (see `NormalizePath()`).
 func (g *GCS) RsyncRecursive(src, dst string) error {
-	if err := gcli.GSUtil(
-		concurrentFlag, "rsync", recursiveFlag, src, dst,
-	); err != nil {
-		return fmt.Errorf("running gsutil rsync: %w", err)
-	}
-	return nil
+	return errors.Wrap(
+		gcli.GSUtil(concurrentFlag, "rsync", recursiveFlag, src, dst),
+		"running gsutil rsync",
+	)
 }
 
 // PathExists returns true if the specified GCS path exists.
 func (g *GCS) PathExists(gcsPath string) (bool, error) {
 	if !g.IsPathNormalized(gcsPath) {
-		return false, fmt.Errorf(
+		return false, errors.Errorf(
 			"cannot run `gsutil ls` GCS path does not begin with `%s`",
 			GcsPrefix,
 		)
@@ -398,7 +393,7 @@ func (g *GCS) PathExists(gcsPath string) (bool, error) {
 func (g *GCS) DeletePath(path string) error {
 	path, err := g.NormalizePath(path)
 	if err != nil {
-		return fmt.Errorf("normalizing GCS path: %w", err)
+		return errors.Wrap(err, "normalizing GCS path")
 	}
 
 	// Build the command arguments
@@ -420,7 +415,7 @@ func (g *GCS) DeletePath(path string) error {
 
 	// Call gsutil to remove the path
 	if err = gcli.GSUtil(args...); err != nil {
-		return fmt.Errorf("calling gsutil to remove path: %w", err)
+		return errors.Wrap(err, "calling gsutil to remove path")
 	}
 
 	return nil

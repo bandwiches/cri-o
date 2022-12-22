@@ -19,9 +19,10 @@ package commands
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
-	"sigs.k8s.io/zeitgeist/dependency"
+	"sigs.k8s.io/zeitgeist/dependencies"
 )
 
 func addValidate(topLevel *cobra.Command) {
@@ -46,16 +47,16 @@ func addValidate(topLevel *cobra.Command) {
 // runValidate is the function invoked by 'addValidate', responsible for
 // validating dependencies in a specified configuration file.
 func runValidate(opts *options) error {
-	client := dependency.NewClient()
+	client := dependencies.NewClient()
 
-	if err := client.LocalCheck(opts.configFile, opts.basePath); err != nil {
-		return fmt.Errorf("checking local dependencies: %w", err)
-	}
-
-	if !opts.localOnly {
+	if opts.localOnly {
+		if err := client.LocalCheck(opts.configFile, opts.basePath); err != nil {
+			return errors.Wrap(err, "checking local dependencies")
+		}
+	} else {
 		updates, err := client.RemoteCheck(opts.configFile)
 		if err != nil {
-			return fmt.Errorf("checking remote dependencies: %w", err)
+			return errors.Wrap(err, "checking remote dependencies")
 		}
 
 		for _, update := range updates {

@@ -19,14 +19,14 @@ package github
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v39/github"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,8 +36,6 @@ const (
 	gitHubAPIGetCommit                  gitHubAPI = "GetCommit"
 	gitHubAPIGetPullRequest             gitHubAPI = "GetPullRequest"
 	gitHubAPIGetIssue                   gitHubAPI = "GetIssue"
-	gitHubAPIUpdateIssue                gitHubAPI = "UpdateIssue"
-	gitHubAPIAddLabels                  gitHubAPI = "AddLabels"
 	gitHubAPIGetRepoCommit              gitHubAPI = "GetRepoCommit"
 	gitHubAPIListCommits                gitHubAPI = "ListCommits"
 	gitHubAPIListPullRequestsWithCommit gitHubAPI = "ListPullRequestsWithCommit"
@@ -128,28 +126,6 @@ func (c *githubNotesRecordClient) GetIssue(ctx context.Context, owner, repo stri
 		return nil, nil, err
 	}
 	return issue, resp, nil
-}
-
-func (c *githubNotesRecordClient) UpdateIssue(ctx context.Context, owner, repo string, number int, issueRequest *github.IssueRequest) (*github.Issue, *github.Response, error) {
-	issue, resp, err := c.client.UpdateIssue(ctx, owner, repo, number, issueRequest)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := c.recordAPICall(gitHubAPIUpdateIssue, issue, resp); err != nil {
-		return nil, nil, err
-	}
-	return issue, resp, nil
-}
-
-func (c *githubNotesRecordClient) AddLabels(ctx context.Context, owner, repo string, number int, labels []string) ([]*github.Label, *github.Response, error) {
-	appliedLabels, resp, err := c.client.AddLabels(ctx, owner, repo, number, labels)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := c.recordAPICall(gitHubAPIAddLabels, labels, resp); err != nil {
-		return nil, nil, err
-	}
-	return appliedLabels, resp, nil
 }
 
 func (c *githubNotesRecordClient) GetRepoCommit(ctx context.Context, owner, repo, sha string) (*github.RepositoryCommit, *github.Response, error) {
@@ -267,8 +243,7 @@ func (c *githubNotesRecordClient) UploadReleaseAsset(
 
 // DeleteReleaseAsset removes an asset from a page, note recorded
 func (c *githubNotesRecordClient) DeleteReleaseAsset(
-	ctx context.Context, owner, repo string, assetID int64,
-) error {
+	ctx context.Context, owner, repo string, assetID int64) error {
 	return nil
 }
 

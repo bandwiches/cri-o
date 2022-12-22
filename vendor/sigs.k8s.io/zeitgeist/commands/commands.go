@@ -22,12 +22,20 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/release-utils/log"
-	"sigs.k8s.io/release-utils/version"
 )
 
 const defaultConfigFile = "dependencies.yaml"
 
-var rootOpts = &options{}
+var (
+	rootOpts = &options{}
+
+	// TODO: Implement these as a separate function or subcommand to avoid the
+	//       deadcode,unused,varcheck nolints
+	// Variables set by GoReleaser on release
+	version = "dev"     // nolint: deadcode,unused,varcheck
+	commit  = "none"    // nolint: deadcode,unused,varcheck
+	date    = "unknown" // nolint: deadcode,unused,varcheck
+)
 
 func New() *cobra.Command {
 	cmd := &cobra.Command{
@@ -66,15 +74,44 @@ func New() *cobra.Command {
 		fmt.Sprintf("the logging verbosity, either %s", log.LevelNames()),
 	)
 
+	// START - Deprecated flags
+
+	// TODO: Remove in the next (post-v0.3.0) minor release
+	cmd.PersistentFlags().BoolVar(
+		&rootOpts.localOnly,
+		"local",
+		false,
+		"if specified, subcommands will only perform local checks",
+	)
+
+	// TODO: Remove in the next (post-v0.3.0) minor release
+	cmd.PersistentFlags().BoolVar(
+		&rootOpts.remote,
+		"remote",
+		false,
+		"if specified, subcommands will query against remotes defined in the config",
+	)
+
+	// nolint: errcheck
+	cmd.PersistentFlags().MarkDeprecated(
+		"local",
+		"and will be removed in a future release. Use --local-only instead.",
+	)
+
+	// nolint: errcheck
+	cmd.PersistentFlags().MarkDeprecated(
+		"remote",
+		"as remote checks now happen by default.",
+	)
+
+	// END - Deprecated flags
+
 	AddCommands(cmd)
-	cmd.AddCommand(version.WithFont("shadow"))
 	return cmd
 }
 
 func AddCommands(topLevel *cobra.Command) {
 	addValidate(topLevel)
-	addExport(topLevel)
-	addUpgrade(topLevel)
 }
 
 func initLogging(*cobra.Command, []string) error {

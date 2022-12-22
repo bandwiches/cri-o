@@ -579,7 +579,6 @@ type SecretConfig struct {
 // ConfigMapConfig represents the "configmap" TOML config table
 //
 // revive does not like the name because the package is already called config
-//
 //nolint:revive
 type ConfigMapConfig struct {
 	// Driver specifies the configmap driver to use.
@@ -843,7 +842,7 @@ func (m *MachineConfig) URI() string {
 
 func (c *EngineConfig) findRuntime() string {
 	// Search for crun first followed by runc, kata, runsc
-	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc", "ocijail"} {
+	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc"} {
 		for _, v := range c.OCIRuntimes[name] {
 			if _, err := os.Stat(v); err == nil {
 				return name
@@ -1038,11 +1037,10 @@ func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []s
 
 // Device parses device mapping string to a src, dest & permissions string
 // Valid values for device looklike:
-//
-//	'/dev/sdc"
-//	'/dev/sdc:/dev/xvdc"
-//	'/dev/sdc:/dev/xvdc:rwm"
-//	'/dev/sdc:rm"
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
 func Device(device string) (src, dst, permissions string, err error) {
 	permissions = "rwm"
 	split := strings.Split(device, ":")

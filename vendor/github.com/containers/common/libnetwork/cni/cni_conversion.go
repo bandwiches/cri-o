@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -328,7 +329,7 @@ func (n *cniNetwork) createCNIConfigListFromNetwork(network *types.Network, writ
 	cniPathName := ""
 	if writeToDisk {
 		cniPathName = filepath.Join(n.cniConfigDir, network.Name+".conflist")
-		err = os.WriteFile(cniPathName, b, 0o644)
+		err = ioutil.WriteFile(cniPathName, b, 0o644)
 		if err != nil {
 			return nil, "", err
 		}
